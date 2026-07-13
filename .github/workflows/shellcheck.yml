@@ -15,5 +15,5 @@ jobs:
           # -x follows the sourced lib and .env.example.
           shellcheck -x -e SC1091 \
             lib/serverlib.sh \
-            setup/palworld/install.sh \
-            setup/ark-se/install.sh
+            setups/palworld/install.sh \
+            setups/ark-se/install.sh
