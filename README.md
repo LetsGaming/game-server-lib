@@ -1,37 +1,41 @@
 # game-server-lib
 
-Reusable Debian setup scripts for SteamCMD-based dedicated game servers, built on a small shared bash library. Designed to run on a clean Proxmox Debian VM.
+Reusable Debian setup scripts for SteamCMD-based dedicated game servers, built on a small shared bash library. Designed to run on a clean Proxmox Debian VM. Configuration is per-game via a `.env` file — you never edit the scripts.
 
 ```
 game-server-lib/
-├── palworld.sh         # Palworld 1.0   (Steam app 2394010)
-├── ark-se.sh           # ARK: Survival Evolved (Steam app 376030)
+├── setup/
+│   ├── palworld/
+│   │   ├── install.sh       # Palworld 1.0   (Steam app 2394010)
+│   │   ├── .env.example     # copy to .env and edit
+│   │   └── README.md        # Palworld sizing + gotchas
+│   └── ark-se/
+│       ├── install.sh       # ARK: Survival Evolved (Steam app 376030)
+│       ├── .env.example
+│       └── README.md        # ARK sizing + gotchas
 ├── lib/
-│   └── serverlib.sh    # shared logic (deps, user, SteamCMD, systemd, firewall, helpers)
-├── .gitlab-ci.yml      # shellcheck lint on push
+│   └── serverlib.sh         # shared logic (deps, user, SteamCMD, systemd, firewall, helpers)
+├── .github/
+│   └── workflows/
+│       └── shellcheck.yml   # lints the scripts on push
 ├── .editorconfig
-├── .gitattributes      # force LF for scripts
-├── .gitignore
+├── .gitattributes           # force LF (bash breaks on CRLF)
+├── .gitignore               # ignores .env
 ├── LICENSE
 └── README.md
 ```
 
-Installers live in the repo root; everything they share sits in `lib/`.
-
-Each game script is a thin config layer: it sets a handful of variables, then calls library functions in order. All logic the games share lives in `lib/serverlib.sh`, so a fix or improvement lands in one place for every game.
+Each `install.sh` is a thin layer: it loads config from `.env`, then calls library functions in order. Everything the games share lives in `lib/serverlib.sh`, so a fix lands in one place for every game.
 
 ## Quick start
 
-Copy the whole folder onto the VM (keep the `lib/` subfolder next to the scripts), then:
+Copy the repo onto the VM, then per game:
 
 ```bash
-# Palworld
-nano palworld.sh        # edit the "EDIT THESE" block at the top
-sudo ./palworld.sh
-
-# ARK: Survival Evolved
-nano ark-se.sh
-sudo ./ark-se.sh
+cd setup/palworld          # or setup/ark-se
+cp .env.example .env        # edit .env to taste (defaults also work as-is)
+nano .env
+sudo ./install.sh
 ```
 
 Each installer:
@@ -47,6 +51,16 @@ Each installer:
 
 Re-running an installer is safe.
 
+## Configuration (`.env`)
+
+All tunables live in each game's `.env`. The workflow:
+
+- `.env.example` is committed and holds the **default values** (documented inline).
+- `install.sh` sources `.env.example` first (defaults), then sources `.env` if present, so your `.env` only needs the values you want to change. Running without a `.env` uses the defaults.
+- `.env` is gitignored — it may hold your admin password, so it never gets committed.
+
+Leaving `ADMIN_PASSWORD` empty auto-generates a strong one and prints it at the end.
+
 ## VM sizing
 
 | Game | RAM | vCPU | Disk |
@@ -54,7 +68,7 @@ Re-running an installer is safe.
 | Palworld 1.0 | 16 GB recommended (8 GB for small groups) | 4 | ~20 GB |
 | ARK: Survival Evolved | 8–16 GB (more with mods / large maps) | 4 | ~30 GB |
 
-Both are memory-hungry and prone to memory growth over long uptimes — a daily restart via cron is a good idea (see each script's summary).
+Both are memory-hungry and grow over long uptimes — a daily restart via cron is a good idea (see each script's summary). For small/medium/large tiers and game-specific tuning, see each game's own README: [Palworld](setup/palworld/README.md), [ARK: SE](setup/ark-se/README.md).
 
 ## Ports (open these at the Proxmox / router firewall too if the VM is behind NAT)
 
@@ -85,15 +99,19 @@ sudo systemctl start palworld
 - Palworld: `/opt/palworld/server/Pal/Saved/Config/LinuxServer/PalWorldSettings.ini`
 - ARK: `/opt/ark-se/server/ShooterGame/Saved/Config/LinuxServer/GameUserSettings.ini` and `Game.ini` (generated on first boot)
 
+Note: changing ports or player counts is easiest by editing `.env` and re-running `install.sh`.
+
 ## Adding a new game
 
-Copy an existing game script and adjust three things — you rarely touch the library:
+Copy an existing game folder and adjust it — you rarely touch the library:
 
-1. **The `EDIT THESE` block** — name, passwords, ports, install dir, service user.
-2. **The Steam `APPID`** and the **launch command** (`ExecStart`). Some games (Palworld) read an INI you patch; others (ARK) read settings straight off the command line.
-3. **The port list** passed to `serverlib::allow_ports` and the **save path** passed to `serverlib::write_backup_script`.
+1. `cp -r setup/ark-se setup/<newgame>`
+2. In `.env.example`, set the game's variables (name, ports, install dir, service user).
+3. In `install.sh`, change the Steam `APPID`, the **launch command** (`ExecStart`), the **port list** passed to `serverlib::allow_ports`, and the **save path** passed to `serverlib::write_backup_script`.
+4. Write a short `README.md` for the game (hardware tiers + gotchas), matching the existing two.
+5. Add `setup/<newgame>/install.sh` to the `shellcheck` list in `.github/workflows/shellcheck.yml`.
 
-The library gives you these building blocks:
+The library provides these building blocks:
 
 | Function | Purpose |
 |----------|---------|
@@ -107,7 +125,7 @@ The library gives you these building blocks:
 | `serverlib::allow_ports "P/proto"...` | open firewall ports |
 | `serverlib::write_update_script ...` / `write_backup_script ...` | generate helpers |
 | `serverlib::gen_password [len]` / `sed_escape STR` / `detect_ip` | small utilities |
-| `serverlib::render_systemd_unit ...` | pure unit renderer (no writes — used by the installer, handy for testing) |
+| `serverlib::render_systemd_unit ...` | pure unit renderer (no writes — handy for testing) |
 
 Set `SERVERLIB_TAG="<game>"` so log lines are prefixed with the game name.
 
@@ -116,10 +134,10 @@ Set `SERVERLIB_TAG="<game>"` so log lines are prefixed with the game name.
 Shell scripts are linted with [ShellCheck](https://www.shellcheck.net/). Run it locally before committing:
 
 ```bash
-shellcheck -x lib/serverlib.sh palworld.sh ark-se.sh
+shellcheck -x lib/serverlib.sh setup/palworld/install.sh setup/ark-se/install.sh
 ```
 
-`.gitlab-ci.yml` runs the same check on every push. `.editorconfig` and `.gitattributes` keep formatting and line endings consistent (LF — bash breaks on CRLF).
+`.github/workflows/shellcheck.yml` runs the same check on every push. `.editorconfig` and `.gitattributes` keep formatting and line endings consistent.
 
 ## Notes
 

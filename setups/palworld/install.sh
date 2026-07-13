@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
 #
 # Palworld 1.0 dedicated server installer for Debian (12/13). Run as root.
-#   sudo ./palworld.sh
 #
-# Re-running is safe: an existing PalWorldSettings.ini is left untouched.
+#   cp .env.example .env      # then edit .env (optional — defaults work)
+#   sudo ./install.sh
+#
+# All configuration comes from .env / .env.example — you never edit this script.
+# Re-running is safe; an existing PalWorldSettings.ini is preserved.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-# shellcheck source=lib/serverlib.sh
-source "$SCRIPT_DIR/lib/serverlib.sh"
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  EDIT THESE
-# ─────────────────────────────────────────────────────────────────────────────
-SERVER_NAME="My Palworld 1.0 Server"     # name shown to players (avoid " )
-SERVER_DESCRIPTION="Palworld dedicated server"
-SERVER_PASSWORD=""                        # empty = open server
-ADMIN_PASSWORD=""                         # empty = auto-generate a strong one
-MAX_PLAYERS=32                            # size to your RAM (16 GB recommended)
-GAME_PORT=8211                            # UDP; must be reachable
-DISABLE_INVADERS=false                    # true = no raids, less memory-leak pressure
-
-SVC_USER="palworld"
-BASE_DIR="/opt/palworld"
-# ─────────────────────────────────────────────────────────────────────────────
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." &>/dev/null && pwd)"
+# shellcheck source=../../lib/serverlib.sh
+source "$REPO_ROOT/lib/serverlib.sh"
 
 SERVERLIB_TAG="palworld"
+
+# Config: committed defaults from .env.example, overridden by your .env.
+# shellcheck source=.env.example
+source "$SCRIPT_DIR/.env.example"
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  # shellcheck source=/dev/null
+  source "$SCRIPT_DIR/.env"
+else
+  serverlib::warn "No .env found — using .env.example defaults. Copy it to .env to customize."
+fi
+
 readonly APPID=2394010
 STEAMCMD_DIR="$BASE_DIR/steamcmd"
 SERVER_DIR="$BASE_DIR/server"
@@ -55,7 +55,7 @@ serverlib::link_steamclient "$SVC_USER" "$BASE_DIR" "$STEAMCMD_DIR"
 
 # ── Config (Palworld-specific) ───────────────────────────────────────────────
 # Palworld reads a single long OptionSettings=(...) line. Copy the template
-# once, then patch in the values above. Existing configs are preserved.
+# once, then patch in the values from .env. Existing configs are preserved.
 mkdir -p "$CONFIG_DIR"
 chown -R "$SVC_USER:$SVC_USER" "$SERVER_DIR/Pal/Saved" 2>/dev/null || true
 

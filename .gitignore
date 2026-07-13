@@ -1,3 +1,7 @@
+# Local config copied from .env.example — may contain the admin password.
+# (.env.example is committed; .env is not.)
+.env
+
 # Editor / OS noise
 .DS_Store
 Thumbs.db
@@ -11,7 +15,7 @@ Thumbs.db
 /tmp/
 /scratch/
 
-# Never commit runtime server data if someone points an install at the repo
+# Never commit runtime server data if an install points at the repo
 /steamcmd/
 /server/
 /backups/

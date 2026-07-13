@@ -1,38 +1,36 @@
 #!/usr/bin/env bash
 #
 # ARK: Survival Evolved dedicated server installer for Debian (12/13). Run as root.
-#   sudo ./ark-se.sh
+#
+#   cp .env.example .env      # then edit .env (optional — defaults work)
+#   sudo ./install.sh
 #
 # This is ARK: Survival Evolved (ASE, app 376030) — NOT Survival Ascended (ASA),
 # whose dedicated server is Windows-only. ASE has a native Linux server.
 #
-# ARK reads its core settings from the launch command line, so there is no INI to
-# pre-edit. GameUserSettings.ini / Game.ini are generated on first boot for
-# fine-tuning later. Re-running is safe.
+# All configuration comes from .env / .env.example — you never edit this script.
+# ARK reads its core settings from the launch command, so there is no INI to
+# pre-edit; GameUserSettings.ini / Game.ini are generated on first boot.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-# shellcheck source=lib/serverlib.sh
-source "$SCRIPT_DIR/lib/serverlib.sh"
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  EDIT THESE
-# ─────────────────────────────────────────────────────────────────────────────
-SESSION_NAME="My ARK Server"    # name shown in the server browser
-SERVER_PASSWORD=""               # empty = open server (avoid ? and spaces)
-ADMIN_PASSWORD=""                # empty = auto-generate (avoid ? and spaces)
-MAX_PLAYERS=70                   # ARK default cap; size to your RAM
-MAP="TheIsland"                  # TheIsland, ScorchedEarth_P, Ragnarok, Aberration_P, etc.
-
-GAME_PORT=7777                   # UDP game port
-QUERY_PORT=27015                 # UDP Steam query port (server browser)
-
-SVC_USER="arkse"
-BASE_DIR="/opt/ark-se"
-# ─────────────────────────────────────────────────────────────────────────────
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." &>/dev/null && pwd)"
+# shellcheck source=../../lib/serverlib.sh
+source "$REPO_ROOT/lib/serverlib.sh"
 
 SERVERLIB_TAG="ark-se"
+
+# Config: committed defaults from .env.example, overridden by your .env.
+# shellcheck source=.env.example
+source "$SCRIPT_DIR/.env.example"
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  # shellcheck source=/dev/null
+  source "$SCRIPT_DIR/.env"
+else
+  serverlib::warn "No .env found — using .env.example defaults. Copy it to .env to customize."
+fi
+
 readonly APPID=376030
 STEAMCMD_DIR="$BASE_DIR/steamcmd"
 SERVER_DIR="$BASE_DIR/server"
