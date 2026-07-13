@@ -162,12 +162,22 @@ serverlib::install_steamcmd() {
 # usage: serverlib::steam_app_update USER STEAMCMD_DIR INSTALL_DIR APPID
 serverlib::steam_app_update() {
   local user="$1" steamcmd_dir="$2" install_dir="$3" appid="$4"
+  local attempt max=5
   serverlib::log "Installing/updating Steam app $appid (first run is a large download)…"
-  serverlib::run_as "$user" "$steamcmd_dir/steamcmd.sh" \
-    +force_install_dir "$install_dir" \
-    +login anonymous \
-    +app_update "$appid" validate \
-    +quit
+  # SteamCMD frequently fails the first attempt with a transient "Missing
+  # configuration" / appmanifest error; retrying a few times is the standard fix.
+  for (( attempt=1; attempt<=max; attempt++ )); do
+    if serverlib::run_as "$user" "$steamcmd_dir/steamcmd.sh" \
+        +force_install_dir "$install_dir" \
+        +login anonymous \
+        +app_update "$appid" validate \
+        +quit; then
+      return 0
+    fi
+    serverlib::warn "SteamCMD attempt $attempt/$max failed (common on first run); retrying in 5s…"
+    sleep 5
+  done
+  serverlib::die "SteamCMD could not install app $appid after $max attempts — run the steamcmd command manually to see the underlying error."
 }
 
 # Create the steamclient.so symlinks the servers look for under ~/.steam.
@@ -219,8 +229,11 @@ serverlib::write_update_script() {
     printf 'set -euo pipefail\n'
     printf '[[ $EUID -eq 0 ]] || { echo "Run as root."; exit 1; }\n'
     printf 'systemctl stop %s\n' "$service"
-    printf 'sudo -u %s -H %s/steamcmd.sh +force_install_dir %s +login anonymous +app_update %s validate +quit\n' \
+    printf 'for i in 1 2 3; do\n'
+    printf '  sudo -u %s -H %s/steamcmd.sh +force_install_dir %s +login anonymous +app_update %s validate +quit && break\n' \
       "$user" "$steamcmd_dir" "$install_dir" "$appid"
+    printf '  echo "SteamCMD attempt $i failed; retrying in 5s…"; sleep 5\n'
+    printf 'done\n'
     printf 'systemctl start %s\n' "$service"
     printf 'echo "Updated and restarted."\n'
   } > "$path"
