@@ -22,6 +22,9 @@ serverlib::log()  { printf '\033[1;36m[%s]\033[0m %s\n' "${SERVERLIB_TAG:-server
 serverlib::warn() { printf '\033[1;33m[%s]\033[0m %s\n' "${SERVERLIB_TAG:-server}" "$*" >&2; }
 serverlib::die()  { printf '\033[1;31m[%s]\033[0m %s\n' "${SERVERLIB_TAG:-server}" "$*" >&2; exit 1; }
 
+# Set the tag shown in log prefixes. Call once from a game script.
+serverlib::set_tag() { SERVERLIB_TAG="$1"; }
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  Preflight
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,6 +55,35 @@ serverlib::gen_password() {
 
 # Best-effort primary IPv4 of this host.
 serverlib::detect_ip() { hostname -I 2>/dev/null | awk '{print $1}'; }
+
+# Load KEY=VALUE pairs from a file into shell variables WITHOUT executing it as
+# a script. Values are taken literally, so passwords or names containing $, !,
+# quotes, or backticks are safe (sourcing them would expand or even run them).
+# One layer of matching surrounding quotes is stripped; comments and blank lines
+# are ignored; a missing file is a no-op.
+# usage: serverlib::load_env FILE
+serverlib::load_env() {
+  local file="$1" line key val first last
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"                                   # tolerate CRLF
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue      # blank / comment line
+    line="${line#export }"                                 # allow an "export " prefix
+    [[ "$line" == *=* ]] || continue
+    key="${line%%=*}"; key="${key//[[:space:]]/}"
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue   # valid identifier only
+    val="${line#*=}"
+    val="${val#"${val%%[![:space:]]*}"}"                   # trim leading whitespace
+    val="${val%"${val##*[![:space:]]}"}"                   # trim trailing whitespace
+    if [[ ${#val} -ge 2 ]]; then                           # strip one matching quote layer
+      first="${val:0:1}"; last="${val: -1}"
+      if [[ ( "$first" == '"' && "$last" == '"' ) || ( "$first" == "'" && "$last" == "'" ) ]]; then
+        val="${val:1:-1}"
+      fi
+    fi
+    printf -v "$key" '%s' "$val"                           # assign literally (no expansion)
+  done < "$file"
+}
 
 # Render a systemd unit to stdout (pure — no writes).
 # usage: serverlib::render_systemd_unit DESC USER WORKDIR EXEC_START [EXEC_STOP]
@@ -176,6 +208,9 @@ serverlib::allow_ports() {
 
 # Generate an update helper at PATH: stop → SteamCMD update → start.
 # usage: serverlib::write_update_script PATH SERVICE USER STEAMCMD_DIR INSTALL_DIR APPID
+# The printf templates single-quote $EUID on purpose: it must stay literal in the
+# generated script (expanded when that runs, not while generating it).
+# shellcheck disable=SC2016
 serverlib::write_update_script() {
   local path="$1" service="$2" user="$3" steamcmd_dir="$4" install_dir="$5" appid="$6"
   {
@@ -195,6 +230,9 @@ serverlib::write_update_script() {
 # Generate a backup helper at PATH: tar SAVE_PARENT/SAVE_DIR into BACKUP_DIR,
 # keeping the KEEP most recent archives (default 14).
 # usage: serverlib::write_backup_script PATH USER SAVE_PARENT SAVE_DIR BACKUP_DIR [KEEP]
+# The printf templates single-quote $stamp/$src/$dst on purpose: they must stay
+# literal in the generated script (expanded when that runs, not while generating).
+# shellcheck disable=SC2016
 serverlib::write_backup_script() {
   local path="$1" user="$2" save_parent="$3" save_dir="$4" backup_dir="$5" keep="${6:-14}"
   {

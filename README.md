@@ -4,7 +4,7 @@ Reusable Debian setup scripts for SteamCMD-based dedicated game servers, built o
 
 ```
 game-server-lib/
-├── setup/
+├── setups/
 │   ├── palworld/
 │   │   ├── install.sh       # Palworld 1.0   (Steam app 2394010)
 │   │   ├── .env.example     # copy to .env and edit
@@ -32,7 +32,7 @@ Each `install.sh` is a thin layer: it loads config from `.env`, then calls libra
 Copy the repo onto the VM, then per game:
 
 ```bash
-cd setup/palworld          # or setup/ark-se
+cd setups/palworld          # or setups/ark-se
 cp .env.example .env        # edit .env to taste (defaults also work as-is)
 nano .env
 sudo ./install.sh
@@ -68,7 +68,7 @@ Leaving `ADMIN_PASSWORD` empty auto-generates a strong one and prints it at the 
 | Palworld 1.0 | 16 GB recommended (8 GB for small groups) | 4 | ~20 GB |
 | ARK: Survival Evolved | 8–16 GB (more with mods / large maps) | 4 | ~30 GB |
 
-Both are memory-hungry and grow over long uptimes — a daily restart via cron is a good idea (see each script's summary). For small/medium/large tiers and game-specific tuning, see each game's own README: [Palworld](setup/palworld/README.md), [ARK: SE](setup/ark-se/README.md).
+Both are memory-hungry and grow over long uptimes — a daily restart via cron is a good idea (see each script's summary). For small/medium/large tiers and game-specific tuning, see each game's own README: [Palworld](setups/palworld/README.md), [ARK: SE](setups/ark-se/README.md).
 
 ## Ports (open these at the Proxmox / router firewall too if the VM is behind NAT)
 
@@ -105,11 +105,11 @@ Note: changing ports or player counts is easiest by editing `.env` and re-runnin
 
 Copy an existing game folder and adjust it — you rarely touch the library:
 
-1. `cp -r setup/ark-se setup/<newgame>`
+1. `cp -r setups/ark-se setups/<newgame>`
 2. In `.env.example`, set the game's variables (name, ports, install dir, service user).
 3. In `install.sh`, change the Steam `APPID`, the **launch command** (`ExecStart`), the **port list** passed to `serverlib::allow_ports`, and the **save path** passed to `serverlib::write_backup_script`.
 4. Write a short `README.md` for the game (hardware tiers + gotchas), matching the existing two.
-5. Add `setup/<newgame>/install.sh` to the `shellcheck` list in `.github/workflows/shellcheck.yml`.
+5. That's all for CI — the ShellCheck workflow lints every `*.sh` in the repo automatically, so there's no list to update.
 
 The library provides these building blocks:
 
@@ -134,7 +134,7 @@ Set `SERVERLIB_TAG="<game>"` so log lines are prefixed with the game name.
 Shell scripts are linted with [ShellCheck](https://www.shellcheck.net/). Run it locally before committing:
 
 ```bash
-shellcheck -x lib/serverlib.sh setup/palworld/install.sh setup/ark-se/install.sh
+find . -name '*.sh' -print0 | xargs -0 -r shellcheck -x
 ```
 
 `.github/workflows/shellcheck.yml` runs the same check on every push. `.editorconfig` and `.gitattributes` keep formatting and line endings consistent.

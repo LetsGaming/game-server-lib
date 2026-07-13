@@ -19,14 +19,13 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." &>/dev/null && pwd)"
 # shellcheck source=../../lib/serverlib.sh
 source "$REPO_ROOT/lib/serverlib.sh"
 
-SERVERLIB_TAG="ark-se"
+serverlib::set_tag "ark-se"
 
-# Config: committed defaults from .env.example, overridden by your .env.
-# shellcheck source=.env.example
-source "$SCRIPT_DIR/.env.example"
+# Config: defaults from .env.example, overridden by your .env. Both are parsed
+# literally (not sourced), so values with $, !, quotes or backticks are safe.
+serverlib::load_env "$SCRIPT_DIR/.env.example"
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
-  # shellcheck source=/dev/null
-  source "$SCRIPT_DIR/.env"
+  serverlib::load_env "$SCRIPT_DIR/.env"
 else
   serverlib::warn "No .env found — using .env.example defaults. Copy it to .env to customize."
 fi
@@ -73,6 +72,8 @@ if [[ -n "$SERVER_PASSWORD" ]]; then
 fi
 
 exec_start="$BINARY_DIR/ShooterGameServer \"$query\" -server -log"
+# $MAINPID is a systemd specifier — it must stay literal, not expand here.
+# shellcheck disable=SC2016
 exec_stop='/bin/kill -s INT $MAINPID'   # ARK saves the world on SIGINT
 
 # ── Service, helpers, firewall ───────────────────────────────────────────────

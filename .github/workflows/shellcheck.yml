@@ -12,8 +12,6 @@ jobs:
       - name: Run ShellCheck
         run: |
           shellcheck --version
-          # -x follows the sourced lib and .env.example.
-          shellcheck -x -e SC1091 \
-            lib/serverlib.sh \
-            setups/palworld/install.sh \
-            setups/ark-se/install.sh
+          # Lint every shell script in the repo. -x follows sourced files
+          # (the lib and .env.example); SC1091 = "sourced file not found".
+          find . -name '*.sh' -print0 | xargs -0 -r shellcheck -x -e SC1091

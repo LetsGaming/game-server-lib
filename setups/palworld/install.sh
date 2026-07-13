@@ -15,14 +15,13 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." &>/dev/null && pwd)"
 # shellcheck source=../../lib/serverlib.sh
 source "$REPO_ROOT/lib/serverlib.sh"
 
-SERVERLIB_TAG="palworld"
+serverlib::set_tag "palworld"
 
-# Config: committed defaults from .env.example, overridden by your .env.
-# shellcheck source=.env.example
-source "$SCRIPT_DIR/.env.example"
+# Config: defaults from .env.example, overridden by your .env. Both are parsed
+# literally (not sourced), so values with $, !, quotes or backticks are safe.
+serverlib::load_env "$SCRIPT_DIR/.env.example"
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
-  # shellcheck source=/dev/null
-  source "$SCRIPT_DIR/.env"
+  serverlib::load_env "$SCRIPT_DIR/.env"
 else
   serverlib::warn "No .env found — using .env.example defaults. Copy it to .env to customize."
 fi
