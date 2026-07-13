@@ -14,7 +14,15 @@ game-server-lib/
 │       ├── .env.example
 │       └── README.md        # ARK sizing + gotchas
 ├── lib/
-│   └── serverlib.sh         # shared logic (deps, user, SteamCMD, systemd, firewall, helpers)
+│   ├── serverlib.sh         # barrel: source this for everything
+│   └── serverlib/           # modules — source one for just what you need
+│       ├── log.sh           # logging + set_tag
+│       ├── util.sh          # sed_escape, gen_password, detect_ip, run_as, load_env
+│       ├── preflight.sh     # require_root, require_systemd
+│       ├── host.sh          # install_base_deps, create_service_user, allow_ports
+│       ├── steamcmd.sh      # install_steamcmd, steam_app_update, link_steamclient
+│       ├── systemd.sh       # render_systemd_unit, install_systemd_service
+│       └── helpers.sh       # write_update_script, write_backup_script
 ├── .github/
 │   └── workflows/
 │       └── shellcheck.yml   # lints the scripts on push
@@ -25,7 +33,7 @@ game-server-lib/
 └── README.md
 ```
 
-Each `install.sh` is a thin layer: it loads config from `.env`, then calls library functions in order. Everything the games share lives in `lib/serverlib.sh`, so a fix lands in one place for every game.
+Each `install.sh` is a thin layer: it loads config from `.env`, then calls library functions in order. Everything the games share lives in `lib/serverlib/` (with `lib/serverlib.sh` re-exporting it all), so a fix lands in one place for every game.
 
 ## Quick start
 
@@ -127,7 +135,7 @@ The library provides these building blocks:
 | `serverlib::gen_password [len]` / `sed_escape STR` / `detect_ip` | small utilities |
 | `serverlib::render_systemd_unit ...` | pure unit renderer (no writes — handy for testing) |
 
-Set `SERVERLIB_TAG="<game>"` so log lines are prefixed with the game name.
+Call `serverlib::set_tag "<game>"` so log lines are prefixed with the game name. Sourcing `lib/serverlib.sh` gives you every function above; to pull only some, source individual `lib/serverlib/<module>.sh` files (each loads its own dependencies).
 
 ## Development
 
