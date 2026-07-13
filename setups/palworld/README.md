@@ -18,11 +18,28 @@ Pocketpair officially recommends 16 GB even for small servers because memory use
 
 **Storage: SSD/NVMe is non-negotiable.** Pocketpair warns that slow disks can corrupt save data, and frequent autosaves stutter on a spinning disk.
 
+## Difficulty (tuned medium)
+
+The template is deliberately **not** vanilla — all-`1.0` rates are trivial once you know Palworld, so it ships a harder-but-fair baseline. Progression stays at `1.0` (no added grind); the changes target lethality, death stakes, and upkeep:
+
+| Setting | Value | vanilla | Effect |
+|---|---|---|---|
+| `PlayerDamageRateDefense` | `2.0` | 1.0 | you take **2× damage** — combat is actually dangerous (the Hard preset's 4× is widely seen as overtuned) |
+| `PalDamageRateDefense` | `1.5` | 1.0 | your Pals are 1.5× more fragile, so a tanky Pal can't facetank everything |
+| `DeathPenalty` | `ItemAndEquipment` | `Item` | death drops items **and equipment** (Pals kept) — recovering your gear is the tension, short of permadeath |
+| `PlayerStomachDecreaceRate` | `1.2` | 1.0 | hunger drains faster |
+| `PlayerStaminaDecreaceRate` | `1.2` | 1.0 | stamina drains faster |
+| `PalStomachDecreaceRate` | `1.2` | 1.0 | Pals get hungry faster — base food logistics matter |
+
+Higher `...DamageRateDefense` = more damage taken (counterintuitive, but confirmed: `0.5` = half damage, `2.0` = double). Dial it: too spicy → drop `PlayerDamageRateDefense` to `1.5` or `DeathPenalty` back to `Item`; want brutal → push defense past `3.0` and add `bHardcore=True` / `DeathPenalty=All`. Leave `Difficulty=None` — it means "use these custom values"; setting a named preset can override them.
+
+**Existing worlds:** on world creation Palworld writes `WorldOption.sav` into the save and from then on it silently overrides `PalWorldSettings.ini`. These settings apply cleanly to a **new** world; to change one that already exists, back up the save, then delete `WorldOption.sav` (in `.../Pal/Saved/SaveGames/0/<world-id>/`) so the `.ini` is read again.
+
 ## Important for Palworld
 
 - **The memory leak is real — schedule a daily restart, don't buy RAM to outrun it.** The process climbs in memory over long uptimes and will eventually OOM (often after ~5–7 days) regardless of how much RAM you throw at it. Add the cron line the installer prints: `0 5 * * * root systemctl restart palworld`. A restart takes seconds and players reconnect to the same world.
 - **Cap per-base load to keep memory predictable.** Each base full of working Pals is a continuous simulation cost. Setting `BaseCampWorkerMaxNum` to ~15–20 in `PalWorldSettings.ini` bounds it.
-- **Only `PalWorldSettings.ini` matters** for server settings (not `Game.ini`). Stop the service before editing it — the server rewrites parts on shutdown.
+- **Only `PalWorldSettings.ini` matters** for server settings (not `Game.ini`). Palworld requires the whole `OptionSettings=(...)` on a single line, so you don't edit that file directly — instead edit `options.conf` (one setting per line, with comments and sections), and the installer compiles it into the single-line `.ini` and patches in your `.env` values. Change `options.conf` to set the defaults future servers get; regenerate an existing one as described above (stop, delete the `.ini`, re-run).
 - **Crossplay is supported on 1.0.** To let Steam/Xbox/PS5/Mac players in, ensure `CrossplayPlatforms=(Steam,Xbox,PS5,Mac)` is set in the config.
 - **Legacy (0.x) saves are a gamble on 1.0.** The overhauled world generation raises CPU/RAM/disk pressure, and forced-converted saves are more prone to corruption. Pocketpair suggests starting fresh; if you must keep an old save, back it up first.
 - **Update after every patch** with `palworld-update`. Clients auto-update and get a version-mismatch error until the server matches. Patches sometimes add new `PalWorldSettings.ini` keys with defaults you may not want — back up the config before updating.

@@ -8,6 +8,7 @@ game-server-lib/
 │   ├── palworld/
 │   │   ├── install.sh       # Palworld 1.0   (Steam app 2394010)
 │   │   ├── .env.example     # copy to .env and edit
+│   │   ├── options.conf     # editable world settings (compiled into the .ini)
 │   │   └── README.md        # Palworld sizing + gotchas
 │   └── ark-se/
 │       ├── install.sh       # ARK: Survival Evolved (Steam app 376030)

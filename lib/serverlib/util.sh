@@ -54,3 +54,21 @@ serverlib::load_env() {
     printf -v "$key" '%s' "$val"                           # assign literally (no expansion)
   done < "$file"
 }
+
+# Compile a human-editable, one-per-line "Key=Value" file into a single joined
+# string: '#' comment lines and blanks are dropped, each kept line is trimmed,
+# and the rest are joined with DELIM (default ","). Lets a readable multi-line
+# source be flattened into a value a parser wants on one line — e.g. Palworld's
+# OptionSettings=(...). usage: serverlib::flatten_conf FILE [DELIM]
+serverlib::flatten_conf() {
+  local file="$1" delim="${2:-,}" line out=""
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*(#.*)?$ ]] && continue
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    if [[ -z "$out" ]]; then out="$line"; else out="$out$delim$line"; fi
+  done < "$file"
+  printf '%s' "$out"
+}

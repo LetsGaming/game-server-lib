@@ -30,6 +30,7 @@ readonly APPID=2394010
 STEAMCMD_DIR="$BASE_DIR/steamcmd"
 SERVER_DIR="$BASE_DIR/server"
 CONFIG_DIR="$SERVER_DIR/Pal/Saved/Config/LinuxServer"
+CONFIG_SOURCE="$SCRIPT_DIR/options.conf"
 BACKUP_DIR="$BASE_DIR/backups"
 
 serverlib::require_root
@@ -53,8 +54,9 @@ serverlib::steam_app_update "$SVC_USER" "$STEAMCMD_DIR" "$SERVER_DIR" "$APPID"
 serverlib::link_steamclient "$SVC_USER" "$BASE_DIR" "$STEAMCMD_DIR"
 
 # ── Config (Palworld-specific) ───────────────────────────────────────────────
-# Palworld reads a single long OptionSettings=(...) line. Copy the template
-# once, then patch in the values from .env. Existing configs are preserved.
+# Compile options.conf (human-editable, one setting per line) into the single
+# OptionSettings=(...) line Palworld requires, then patch in the .env values.
+# Existing configs are preserved.
 mkdir -p "$CONFIG_DIR"
 chown -R "$SVC_USER:$SVC_USER" "$SERVER_DIR/Pal/Saved" 2>/dev/null || true
 
@@ -62,10 +64,12 @@ ini="$CONFIG_DIR/PalWorldSettings.ini"
 if [[ -f "$ini" ]]; then
   serverlib::warn "PalWorldSettings.ini exists — leaving it as-is."
 else
-  [[ -f "$SERVER_DIR/DefaultPalWorldSettings.ini" ]] \
-    || serverlib::die "Default config missing — the SteamCMD download did not complete."
-  serverlib::log "Writing PalWorldSettings.ini…"
-  cp "$SERVER_DIR/DefaultPalWorldSettings.ini" "$ini"
+  [[ -f "$CONFIG_SOURCE" ]] || serverlib::die "Config source missing: $CONFIG_SOURCE"
+  serverlib::log "Writing PalWorldSettings.ini from options.conf…"
+  {
+    printf '[/Script/Pal.PalGameWorldSettings]\n'
+    printf 'OptionSettings=(%s)\n' "$(serverlib::flatten_conf "$CONFIG_SOURCE")"
+  } > "$ini"
   sed -i "s|ServerName=\"[^\"]*\"|ServerName=\"$(serverlib::sed_escape "$SERVER_NAME")\"|"                 "$ini"
   sed -i "s|ServerDescription=\"[^\"]*\"|ServerDescription=\"$(serverlib::sed_escape "$SERVER_DESCRIPTION")\"|" "$ini"
   sed -i "s|AdminPassword=\"[^\"]*\"|AdminPassword=\"$(serverlib::sed_escape "$ADMIN_PASSWORD")\"|"         "$ini"
