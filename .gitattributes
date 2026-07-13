@@ -1,0 +1,4 @@
+# Normalize line endings; bash breaks on CRLF, so force LF for scripts.
+* text=auto
+*.sh text eol=lf
+*.yml text eol=lf

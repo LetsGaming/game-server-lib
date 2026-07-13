@@ -1,0 +1,17 @@
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+*~
+*.swp
+.idea/
+.vscode/
+
+# Logs and local scratch
+*.log
+/tmp/
+/scratch/
+
+# Never commit runtime server data if someone points an install at the repo
+/steamcmd/
+/server/
+/backups/
