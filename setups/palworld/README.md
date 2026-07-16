@@ -25,7 +25,7 @@ Pocketpair officially recommends 16 GB even for small servers because memory use
 | Setting | Value | vanilla | Effect |
 |---|---|---|---|
 | `PlayerDamageRateDefense` | `2.0` | 1.0 | you take **2× damage** — combat is actually dangerous (the Hard preset's 4× is widely seen as overtuned) |
-| `PalDamageRateDefense` | `1.5` | 1.0 | your Pals are 1.5× more fragile, so a tanky Pal can't facetank everything |
+| `PalDamageRateDefense` | `1.0` | 1.0 | left at vanilla on purpose — it scales **all** Pals, so raising it makes wild Pals easier to kill too (see below) |
 | `DeathPenalty` | `ItemAndEquipment` | `Item` | death drops items **and equipment** (Pals kept) — recovering your gear is the tension, short of permadeath |
 | `PlayerStomachDecreaceRate` | `1.2` | 1.0 | hunger drains faster |
 | `PlayerStaminaDecreaceRate` | `1.2` | 1.0 | stamina drains faster |
@@ -47,21 +47,26 @@ The design goal is **harder without "one misstep and you're dead"**. Cranking `P
 | Setting | medium | hard | Effect |
 |---|---|---|---|
 | `PlayerDamageRateDefense` | 2.0 | **2.5** | more incoming damage — still short of two-shot territory |
-| `PalDamageRateDefense` | 1.5 | **2.0** | Pals are genuinely fragile; no facetanking |
 | `PlayerDamageRateAttack` | 1.0 | **0.8** | you deal less, so fights last longer — raises time-to-kill instead of cutting time-to-die |
+| `PalDamageRateDefense` | 1.0 | **0.8** | Pals are meatier. With attack at 0.8 that's **0.64× vanilla damage to Pals** — fights and captures are real work |
+| `ExpRate` | 1.0 | **0.6** | slower levelling, so tech tiers don't outrun the world |
+| `PalCaptureRate` | 1.0 | **0.8** | captures cost more spheres |
+| `CollectionDropRate` | 1.0 | **0.8** | gathering yields less |
 | `PlayerAutoHPRegeneRate` | 1.0 | **0.5** | no passive heal-tanking; food and meds matter |
 | `PlayerAutoHpRegeneRateInSleep` | 1.0 | **0.5** | sleeping isn't a free full reset |
 | `PalAutoHPRegeneRate` / `...InSleep` | 1.0 | **0.5** | hurt Pals stay hurt |
 | `PlayerStomachDecreaceRate` | 1.2 | **1.5** | hunger is a real clock |
-| `PlayerStaminaDecreaceRate` | 1.2 | **1.5** | stamina pressure in fights and traversal |
+| `PlayerStaminaDecreaceRate` | 1.2 | **1.2** | left at the medium value — 1.5 was too punishing in play |
 | `PalStomachDecreaceRate` | 1.2 | **1.5** | base food logistics matter |
-| `PalStaminaDecreaceRate` | 1.0 | **1.3** | Pals tire |
+| `PalStaminaDecreaceRate` | 1.0 | **1.1** | Pals tire slightly faster (mounts included) |
 | `PalSpawnNumRate` | 1.0 | **1.2** | denser world, fewer safe gaps |
 | `BuildObjectDamageRate` | 1.0 | **1.5** | raids actually threaten the base |
 
-Deliberately **not** changed: `DeathPenalty` stays `ItemAndEquipment` (going to `All` loses your Pals too and invites a death spiral — losing the fight that killed you shouldn't cost you the means to fight back); `bHardcore` / `bPalLost` stay off (that *is* one-misstep-death); and XP, capture, gathering, work speed, and hatching all stay at `1.0` — this is meant to be harder, not grindier. `PalDamageRateAttack` is untouched because it scales *all* Pals, yours included, so the net direction is ambiguous.
+**The `PalDamageRateDefense` trap:** it scales *every* Pal, wild and yours. Setting it **above** 1.0 to make your Pals fragile also makes wild Pals melt — which makes combat and capture *easier*, not harder. Below 1.0 does the reverse: wild Pals are meaty (harder) and your Pals survive longer (a small offset you eat on purpose). The same coupling applies to `PalDamageRateAttack`, which scales damage dealt by all Pals — it's left at 1.0 because the net direction is genuinely ambiguous.
 
-Dial it: too spicy → `PlayerDamageRateDefense` back to `2.0`, or regen back to `1.0`. Still soft → `3.0` is the ceiling I'd go to before it turns spiky. Want actually brutal → `4.0` plus `bHardcore=True` / `DeathPenalty=All`, but that's the thing this preset exists to avoid.
+Deliberately **not** changed: `DeathPenalty` stays `ItemAndEquipment` (going to `All` loses your Pals too and invites a death spiral — losing the fight that killed you shouldn't cost you the means to fight back); and `bHardcore` / `bPalLost` stay off (that *is* one-misstep-death). `WorkSpeedRate` and `PalEggDefaultHatchingTime` stay at 1.0 — base throughput and breeding are chores, not challenge.
+
+Dial it: too spicy → `PlayerDamageRateDefense` back to `2.0`, or regen back to `1.0`. Still soft → `3.0` is the ceiling I'd go to before it turns spiky, and `ExpRate` `0.5`. Want actually brutal → `4.0` plus `bHardcore=True` / `DeathPenalty=All`, but that's the thing this preset exists to avoid.
 
 **Existing worlds:** on world creation Palworld writes `WorldOption.sav` into the save and from then on it silently overrides `PalWorldSettings.ini`. These settings apply cleanly to a **new** world; to change one that already exists, back up the save, then delete `WorldOption.sav` (in `.../Pal/Saved/SaveGames/0/<world-id>/`) so the `.ini` is read again.
 
