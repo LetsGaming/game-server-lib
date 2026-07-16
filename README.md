@@ -11,6 +11,7 @@ game-server-lib/
 │   │   ├── common.sh        # config + paths shared by install.sh and reset.sh
 │   │   ├── .env.example     # copy to .env and edit
 │   │   ├── options.conf     # editable world settings (compiled into the .ini)
+│   │   ├── options.hard.conf # harder preset — select via OPTIONS_FILE in .env
 │   │   ├── mods/            # drop .pak mods here (Linux support is limited)
 │   │   └── README.md        # Palworld sizing + gotchas
 │   └── ark-se/

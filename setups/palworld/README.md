@@ -18,9 +18,9 @@ Pocketpair officially recommends 16 GB even for small servers because memory use
 
 **Storage: SSD/NVMe is non-negotiable.** Pocketpair warns that slow disks can corrupt save data, and frequent autosaves stutter on a spinning disk.
 
-## Difficulty (tuned medium)
+## Difficulty presets
 
-The template is deliberately **not** vanilla — all-`1.0` rates are trivial once you know Palworld, so it ships a harder-but-fair baseline. Progression stays at `1.0` (no added grind); the changes target lethality, death stakes, and upkeep:
+`options.conf` (the default) is deliberately **not** vanilla — all-`1.0` rates are trivial once you know Palworld, so it ships a harder-but-fair baseline. Progression stays at `1.0` (no added grind); the changes target lethality, death stakes, and upkeep:
 
 | Setting | Value | vanilla | Effect |
 |---|---|---|---|
@@ -31,7 +31,37 @@ The template is deliberately **not** vanilla — all-`1.0` rates are trivial onc
 | `PlayerStaminaDecreaceRate` | `1.2` | 1.0 | stamina drains faster |
 | `PalStomachDecreaceRate` | `1.2` | 1.0 | Pals get hungry faster — base food logistics matter |
 
-Higher `...DamageRateDefense` = more damage taken (counterintuitive, but confirmed: `0.5` = half damage, `2.0` = double). Dial it: too spicy → drop `PlayerDamageRateDefense` to `1.5` or `DeathPenalty` back to `Item`; want brutal → push defense past `3.0` and add `bHardcore=True` / `DeathPenalty=All`. Leave `Difficulty=None` — it means "use these custom values"; setting a named preset can override them.
+Higher `...DamageRateDefense` = more damage taken (counterintuitive, but confirmed: `0.5` = half damage, `2.0` = double). Leave `Difficulty=None` — it means "use these custom values"; setting a named preset can override them.
+
+### Harder preset — `options.hard.conf`
+
+If medium still isn't biting, switch presets in `.env` and re-run `reset.sh`:
+
+```bash
+OPTIONS_FILE="options.hard.conf"     # in .env
+sudo ./reset.sh
+```
+
+The design goal is **harder without "one misstep and you're dead"**. Cranking `PlayerDamageRateDefense` to the stock Hard preset's `4.0` is exactly what produces that — a hit that does ~200 on vanilla lands for ~800 and two-shots you. So this preset stops at `2.5` and spreads the difficulty across more axes instead: fights run longer, recovery is slow, upkeep is real, raids bite.
+
+| Setting | medium | hard | Effect |
+|---|---|---|---|
+| `PlayerDamageRateDefense` | 2.0 | **2.5** | more incoming damage — still short of two-shot territory |
+| `PalDamageRateDefense` | 1.5 | **2.0** | Pals are genuinely fragile; no facetanking |
+| `PlayerDamageRateAttack` | 1.0 | **0.8** | you deal less, so fights last longer — raises time-to-kill instead of cutting time-to-die |
+| `PlayerAutoHPRegeneRate` | 1.0 | **0.5** | no passive heal-tanking; food and meds matter |
+| `PlayerAutoHpRegeneRateInSleep` | 1.0 | **0.5** | sleeping isn't a free full reset |
+| `PalAutoHPRegeneRate` / `...InSleep` | 1.0 | **0.5** | hurt Pals stay hurt |
+| `PlayerStomachDecreaceRate` | 1.2 | **1.5** | hunger is a real clock |
+| `PlayerStaminaDecreaceRate` | 1.2 | **1.5** | stamina pressure in fights and traversal |
+| `PalStomachDecreaceRate` | 1.2 | **1.5** | base food logistics matter |
+| `PalStaminaDecreaceRate` | 1.0 | **1.3** | Pals tire |
+| `PalSpawnNumRate` | 1.0 | **1.2** | denser world, fewer safe gaps |
+| `BuildObjectDamageRate` | 1.0 | **1.5** | raids actually threaten the base |
+
+Deliberately **not** changed: `DeathPenalty` stays `ItemAndEquipment` (going to `All` loses your Pals too and invites a death spiral — losing the fight that killed you shouldn't cost you the means to fight back); `bHardcore` / `bPalLost` stay off (that *is* one-misstep-death); and XP, capture, gathering, work speed, and hatching all stay at `1.0` — this is meant to be harder, not grindier. `PalDamageRateAttack` is untouched because it scales *all* Pals, yours included, so the net direction is ambiguous.
+
+Dial it: too spicy → `PlayerDamageRateDefense` back to `2.0`, or regen back to `1.0`. Still soft → `3.0` is the ceiling I'd go to before it turns spiky. Want actually brutal → `4.0` plus `bHardcore=True` / `DeathPenalty=All`, but that's the thing this preset exists to avoid.
 
 **Existing worlds:** on world creation Palworld writes `WorldOption.sav` into the save and from then on it silently overrides `PalWorldSettings.ini`. These settings apply cleanly to a **new** world; to change one that already exists, back up the save, then delete `WorldOption.sav` (in `.../Pal/Saved/SaveGames/0/<world-id>/`) so the `.ini` is read again.
 
