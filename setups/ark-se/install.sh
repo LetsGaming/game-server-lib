@@ -9,8 +9,8 @@
 # whose dedicated server is Windows-only. ASE has a native Linux server.
 #
 # All configuration comes from .env / .env.example — you never edit this script.
-# ARK reads its core settings from the launch command, so there is no INI to
-# pre-edit; GameUserSettings.ini / Game.ini are generated on first boot.
+# Server identity comes from the launch command; gameplay/difficulty settings are
+# generated into GameUserSettings.ini / Game.ini from the editable .conf sources.
 
 set -euo pipefail
 
@@ -35,6 +35,8 @@ STEAMCMD_DIR="$BASE_DIR/steamcmd"
 SERVER_DIR="$BASE_DIR/server"
 BINARY_DIR="$SERVER_DIR/ShooterGame/Binaries/Linux"
 CONFIG_DIR="$SERVER_DIR/ShooterGame/Saved/Config/LinuxServer"
+GUS_SOURCE="$SCRIPT_DIR/gameusersettings.conf"
+GAME_SOURCE="$SCRIPT_DIR/game.conf"
 BACKUP_DIR="$BASE_DIR/backups"
 
 serverlib::require_root
@@ -56,6 +58,26 @@ chown -R "$SVC_USER:$SVC_USER" "$BASE_DIR"
 serverlib::install_steamcmd "$SVC_USER" "$STEAMCMD_DIR"
 serverlib::steam_app_update "$SVC_USER" "$STEAMCMD_DIR" "$SERVER_DIR" "$APPID"
 serverlib::link_steamclient "$SVC_USER" "$BASE_DIR" "$STEAMCMD_DIR"
+
+# ── Config (ARK-specific) ────────────────────────────────────────────────────
+# Generate GameUserSettings.ini + Game.ini from the editable .conf sources
+# (comments stripped). ARK reads these on boot; existing files are preserved.
+mkdir -p "$CONFIG_DIR"
+chown -R "$SVC_USER:$SVC_USER" "$SERVER_DIR/ShooterGame/Saved" 2>/dev/null || true
+
+write_ini() {  # DEST_NAME  SOURCE
+  local dest="$CONFIG_DIR/$1" src="$2"
+  if [[ -f "$dest" ]]; then
+    serverlib::warn "$1 exists — leaving it as-is."
+    return 0
+  fi
+  [[ -f "$src" ]] || serverlib::die "Config source missing: $src"
+  serverlib::log "Writing $1 from $(basename "$src")…"
+  serverlib::strip_comments "$src" > "$dest"
+  chown "$SVC_USER:$SVC_USER" "$dest"
+}
+write_ini GameUserSettings.ini "$GUS_SOURCE"
+write_ini Game.ini             "$GAME_SOURCE"
 
 # ── Launch command (ARK-specific) ────────────────────────────────────────────
 # ARK options live in a '?'-delimited query string as argv[1]; flags follow it.
@@ -109,9 +131,11 @@ cat <<EOF
                 Or in-game console:  open ${ip_addr:-<server-ip>}:$GAME_PORT
  Admin pass   : $ADMIN_PASSWORD$gen_note
 
- Config (after first boot, for fine-tuning):
-     $CONFIG_DIR/GameUserSettings.ini
-     $CONFIG_DIR/Game.ini
+ Settings   : edit gameusersettings.conf and game.conf (this folder), then
+              re-run install.sh. Difficulty is a tuned medium — see README.md.
+              Generated into:
+                $CONFIG_DIR/GameUserSettings.ini
+                $CONFIG_DIR/Game.ini
  Saves : $SERVER_DIR/ShooterGame/Saved
 
  Ports opened : $GAME_PORT/udp, $((GAME_PORT + 1))/udp, $QUERY_PORT/udp

@@ -7,12 +7,17 @@ game-server-lib/
 ├── setups/
 │   ├── palworld/
 │   │   ├── install.sh       # Palworld 1.0   (Steam app 2394010)
+│   │   ├── reset.sh         # re-apply settings / wipe the world
+│   │   ├── common.sh        # config + paths shared by install.sh and reset.sh
 │   │   ├── .env.example     # copy to .env and edit
 │   │   ├── options.conf     # editable world settings (compiled into the .ini)
+│   │   ├── mods/            # drop .pak mods here (Linux support is limited)
 │   │   └── README.md        # Palworld sizing + gotchas
 │   └── ark-se/
 │       ├── install.sh       # ARK: Survival Evolved (Steam app 376030)
 │       ├── .env.example
+│       ├── gameusersettings.conf  # editable rates & difficulty (→ GameUserSettings.ini)
+│       ├── game.conf              # editable breeding & advanced (→ Game.ini)
 │       └── README.md        # ARK sizing + gotchas
 ├── lib/
 │   ├── serverlib.sh         # barrel: source this for everything

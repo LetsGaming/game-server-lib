@@ -35,6 +35,30 @@ Higher `...DamageRateDefense` = more damage taken (counterintuitive, but confirm
 
 **Existing worlds:** on world creation Palworld writes `WorldOption.sav` into the save and from then on it silently overrides `PalWorldSettings.ini`. These settings apply cleanly to a **new** world; to change one that already exists, back up the save, then delete `WorldOption.sav` (in `.../Pal/Saved/SaveGames/0/<world-id>/`) so the `.ini` is read again.
 
+## Resetting / applying changed settings
+
+Editing `options.conf` or `.env` does **nothing** to a running server on its own: `install.sh` won't overwrite an existing `PalWorldSettings.ini`, and Palworld writes a `WorldOption.sav` into the save at world creation that from then on silently overrides the `.ini`. `reset.sh` handles both.
+
+```bash
+sudo ./reset.sh                     # re-apply settings, KEEP the world
+sudo ./reset.sh --wipe-world        # ...and start a brand-new world
+sudo ./reset.sh --wipe-world --yes  # skip the confirmation prompt
+```
+
+It stops the server, takes a backup, deletes the generated `.ini` (and `WorldOption.sav`, or the whole save with `--wipe-world`), regenerates the config from `options.conf` + `.env`, syncs mods, and starts back up. It does **not** re-run SteamCMD, so it takes seconds. A `--wipe-world` asks for confirmation unless you pass `--yes`.
+
+Your admin password survives a reset: `.env` wins if set, otherwise the existing config's password is reused rather than regenerated.
+
+Settings baked in at world creation (the seed, for one) still won't budge without `--wipe-world`.
+
+## Mods
+
+Short version: **server-side mods barely work on Linux**, and that's Pocketpair's position, not a limitation of these scripts — the 1.0 server docs say server-side mods work only on the Windows dedicated server. The official loader (`PalModSettings.ini` / `ActiveModList` / Workshop packages) and UE4SS-based mods (including PalSchema) are Windows-only.
+
+Plain `.pak` content mods are the one thing that can still work, since Unreal loads them itself. Drop them in `mods/` and run `./reset.sh`. That folder is the source of truth — removing a `.pak` and re-running removes it from the server too, which matters because Pocketpair require old mods to be *deleted* before a game update, not just disabled.
+
+Read `mods/README.md` before you spend time on it. Most of what mods are used for (rates, difficulty, capture, drops, base limits) is in `options.conf` already and works properly.
+
 ## Important for Palworld
 
 - **The memory leak is real — schedule a daily restart, don't buy RAM to outrun it.** The process climbs in memory over long uptimes and will eventually OOM (often after ~5–7 days) regardless of how much RAM you throw at it. Add the cron line the installer prints: `0 5 * * * root systemctl restart palworld`. A restart takes seconds and players reconnect to the same world.

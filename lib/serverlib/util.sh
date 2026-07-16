@@ -72,3 +72,17 @@ serverlib::flatten_conf() {
   done < "$file"
   printf '%s' "$out"
 }
+
+# Print a file with '#' comment lines removed (blank lines and everything else,
+# including [Section] headers, kept verbatim). Lets a config the app rewrites
+# and can't keep comments in (e.g. ARK's INIs) still live commented + editable
+# in the repo. usage: serverlib::strip_comments FILE
+serverlib::strip_comments() {
+  local file="$1" line
+  [[ -f "$file" ]] || return 0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    printf '%s\n' "$line"
+  done < "$file"
+}
